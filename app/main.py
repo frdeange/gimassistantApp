@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import users, auth, trainings
+from app.routers import users, auth, trainings, notifications
 from dotenv import load_dotenv
 import os
 
@@ -40,6 +40,7 @@ URLLib3Instrumentor().instrument()
 app.include_router(users.router)
 app.include_router(auth.router)
 app.include_router(trainings.router)
+app.include_router(notifications.router)
 
 @app.get("/")
 def read_root():
