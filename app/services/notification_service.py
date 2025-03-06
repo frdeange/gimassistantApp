@@ -6,6 +6,7 @@ from app.config.database import database
 from azure.communication.email import EmailClient
 import os
 from uuid import uuid4
+from datetime import datetime, timezone
 
 class NotificationService:
     def __init__(self):
@@ -37,9 +38,10 @@ class NotificationService:
             _id=str(uuid4()),  # Generar un ID único
             user_id=notification.user_id,
             message=notification.message,
-            read=notification.read
+            read=notification.read,
+            created_at=notification.created_at or datetime.now(timezone.utc).isoformat()  # Set created_at to current datetime if not provided
         )
-        self.container.create_item(new_notification.dict(by_alias=True))
+        self.container.create_item(new_notification.model_dump(by_alias=True))
 
         # Enviar correo electrónico
         user = self.user_service.get_user(notification.user_id)
@@ -59,4 +61,4 @@ class NotificationService:
         return updated_notification
 
     def delete_notification(self, notification_id: str) -> None:
-        self.container.delete_item(item=notification_id, partition_key=notification_id) 
+        self.container.delete_item(item=notification_id, partition_key=notification_id)

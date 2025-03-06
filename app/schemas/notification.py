@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 class NotificationBase(BaseModel):
     user_id: str
@@ -8,7 +8,7 @@ class NotificationBase(BaseModel):
     read: bool = False
 
 class NotificationCreate(NotificationBase):
-    pass
+    created_at: Optional[str] = None  # Add created_at field as an optional string
 
 class NotificationUpdate(NotificationBase):
     read: Optional[bool] = None
