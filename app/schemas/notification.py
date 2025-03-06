@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Optional
 from datetime import datetime, timezone
 
@@ -8,7 +8,13 @@ class NotificationBase(BaseModel):
     read: bool = False
 
 class NotificationCreate(NotificationBase):
-    created_at: Optional[str] = None  # Add created_at field as an optional string
+    created_at: Optional[datetime] = None
+
+    @field_validator('created_at', mode='before')
+    def set_created_at(cls, v):
+        return v or datetime.now(timezone.utc)
+
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})  # Convierte datetime a string
 
 class NotificationUpdate(NotificationBase):
     read: Optional[bool] = None
@@ -17,5 +23,4 @@ class NotificationResponse(NotificationBase):
     id: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})  # Convierte datetime a string 

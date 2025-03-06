@@ -12,7 +12,9 @@ class NotificationService:
     def __init__(self):
         self.container = database.get_container_client("notifications")
         self.user_service = UserService()
-        self.email_client = EmailClient.from_connection_string(os.getenv("AZURE_COMMUNICATION_SERVICE_CONNECTION_STRING"))
+        self.email_client = EmailClient.from_connection_string(
+            os.getenv("AZURE_COMMUNICATION_SERVICE_CONNECTION_STRING")
+        )
 
     def send_email(self, to_email: str, subject: str, body: str):
         email_message = {
@@ -34,17 +36,26 @@ class NotificationService:
             print(f"Failed to send email: {e}")
 
     def create_notification(self, notification: NotificationCreate) -> Notification:
+        # Mantener created_at como datetime (si no se proporciona, se asigna el tiempo actual)
+        created_at = notification.created_at or datetime.now(timezone.utc)
+        
         new_notification = Notification(
-            _id=str(uuid4()),  # Generar un ID único
+            id=str(uuid4()),  # Genera un ID único
             user_id=notification.user_id,
             message=notification.message,
             read=notification.read,
-            created_at=notification.created_at or datetime.now(timezone.utc).isoformat()  # Set created_at to current datetime if not provided
+            created_at=created_at  # Se guarda como datetime
         )
-        self.container.create_item(new_notification.model_dump(by_alias=True))
+        
+        # Convertir a diccionario y luego transformar el datetime a ISO solo para enviar a CosmosDB
+        notification_data = new_notification.model_dump(by_alias=True)
+        if isinstance(notification_data.get("created_at"), datetime):
+            notification_data["created_at"] = notification_data["created_at"].isoformat()
+        
+        self.container.create_item(notification_data)
 
         # Enviar correo electrónico
-        user = self.user_service.get_user(notification.user_id)
+        user = self.user_service.get_user(notification.user_id) 
         self.send_email(user.email, "New Notification", notification.message)
 
         return new_notification
