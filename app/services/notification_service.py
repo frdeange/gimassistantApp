@@ -3,8 +3,9 @@ from app.schemas.notification import NotificationCreate, NotificationUpdate
 from typing import List
 from app.services.user_service import UserService
 from app.config.database import database
-from azure.communication.email import EmailClient, EmailContent, EmailAddress, EmailMessage, EmailRecipients
+from azure.communication.email import EmailClient
 import os
+from uuid import uuid4
 
 class NotificationService:
     def __init__(self):
@@ -13,20 +14,27 @@ class NotificationService:
         self.email_client = EmailClient.from_connection_string(os.getenv("AZURE_COMMUNICATION_SERVICE_CONNECTION_STRING"))
 
     def send_email(self, to_email: str, subject: str, body: str):
-        email_content = EmailContent(subject=subject, plain_text=body)
-        email_address = EmailAddress(address=to_email)
-        email_recipients = EmailRecipients(to=[email_address])
-        email_message = EmailMessage(sender=os.getenv("EMAIL_ADDRESS"), content=email_content, recipients=email_recipients)
+        email_message = {
+            "senderAddress": os.getenv("EMAIL_ADDRESS"),
+            "recipients": {
+                "to": [{"address": to_email}]
+            },
+            "content": {
+                "subject": subject,
+                "plainText": body
+            }
+        }
 
         try:
-            self.email_client.send(email_message)
-            print("Email sent successfully")
+            poller = self.email_client.begin_send(email_message)
+            result = poller.result()
+            print("Email sent successfully:", result)
         except Exception as e:
             print(f"Failed to send email: {e}")
 
     def create_notification(self, notification: NotificationCreate) -> Notification:
         new_notification = Notification(
-            id="1",  # Generar un ID único
+            _id=str(uuid4()),  # Generar un ID único
             user_id=notification.user_id,
             message=notification.message,
             read=notification.read

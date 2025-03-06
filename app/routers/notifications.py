@@ -10,7 +10,22 @@ notification_service = NotificationService()
 
 @router.post("/", response_model=NotificationResponse)
 def create_notification(notification: NotificationCreate, current_user: User = Depends(get_current_user)):
-    if current_user.id != notification.user_id:
+    # Permitir que los administradores creen notificaciones para cualquier usuario
+    if "admin" not in current_user.roles and current_user.id != notification.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return notification_service.create_notification(notification)
+
+@router.post("/send_to_trainer", response_model=NotificationResponse)
+def send_notification_to_trainer(notification: NotificationCreate, current_user: User = Depends(get_current_user)):
+    # Permitir que los usuarios envíen notificaciones a los entrenadores
+    if "user" not in current_user.roles:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return notification_service.create_notification(notification)
+
+@router.post("/send_to_user", response_model=NotificationResponse)
+def send_notification_to_user(notification: NotificationCreate, current_user: User = Depends(get_current_user)):
+    # Permitir que los entrenadores envíen notificaciones a los usuarios
+    if "trainer" not in current_user.roles and "admin" not in current_user.roles:
         raise HTTPException(status_code=403, detail="Not authorized")
     return notification_service.create_notification(notification)
 
@@ -31,4 +46,4 @@ def delete_notification(notification_id: str, current_user: User = Depends(get_c
     if current_user.id != existing_notification.user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
     notification_service.delete_notification(notification_id)
-    return {"message": "Notification deleted"}
+    return {"message": "Notification deleted"} 
